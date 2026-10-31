@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "name": "Tent Billing",
+    "slug": "tent-billing-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "android": {
+      "package": "com.tentbilling.app"
+    },
+    "ios": {
+      "bundleIdentifier": "com.tentbilling.app"
+    }
+  }
+}

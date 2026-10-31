@@ -1,0 +1,8 @@
+node_modules/
+.expo/
+dist/
+.tmp/
+*.log
+android/
+ios/
+artifacts/*.apk
