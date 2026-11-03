@@ -47,6 +47,8 @@ npm run export
 
 ## Android APK
 
+The locally built preview is at `artifacts/shamiyana-preview.apk`. Copy it to an ARM64 Android phone (Android 7 or newer) and open it to install, allowing installation from that file source if Android asks. It runs without Expo Go or a development server. This is a test-signed preview; device workflow and PDF-sharing checks remain pending. See `VALIDATION.md` for verification details and the file checksum.
+
 For a local Windows preview build with Android Studio's JDK and the Android SDK installed:
 
 ```powershell
