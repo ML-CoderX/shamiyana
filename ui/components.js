@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Animated, Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Animated, Image, KeyboardAvoidingView, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { color, radius, shadow, size, space, type } from './tokens';
 
@@ -92,7 +92,7 @@ export function Field({ label, icon, required, prefix, style, inputStyle, action
 
 export function Sheet({ visible, close, title, closeLabel, children }) {
   return <Modal visible={visible} transparent animationType="slide" onRequestClose={close}>
-    <KeyboardAvoidingView style={styles.overlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+    <KeyboardAvoidingView style={styles.overlay} behavior="height">
       <SafeAreaView edges={['bottom']} style={styles.sheet}>
         <View style={styles.handle} />
         <View style={styles.sheetHeader}><Text accessibilityRole="header" style={[type.heading, styles.grow]}>{title}</Text>

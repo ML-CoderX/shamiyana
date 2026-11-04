@@ -8,9 +8,9 @@
     "android": {
       "package": "com.tentbilling.app"
     },
-    "ios": {
-      "bundleIdentifier": "com.tentbilling.app"
-    },
-    "icon": "./assets/shamiyana-logo.png"
+    "icon": "./assets/shamiyana-logo.png",
+    "platforms": [
+      "android"
+    ]
   }
 }

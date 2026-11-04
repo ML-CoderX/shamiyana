@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, FlatList, StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, FlatList, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Picker } from '@react-native-picker/picker';
@@ -91,7 +91,7 @@ export default function NewOrderScreen({ navigation }) {
   };
 
   return <SafeAreaView edges={['bottom', 'left', 'right']} style={styles.page}>
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <View style={styles.flex}>
       {loading && <ActivityIndicator color={color.brand} />}
       {failed && <Button variant="secondary" label={t('retry')} onPress={load} />}
       <FlatList keyboardShouldPersistTaps="handled" contentContainerStyle={common.body}
@@ -133,7 +133,7 @@ export default function NewOrderScreen({ navigation }) {
         </View>}
       />
       <View style={common.footer}><Button icon="arrow" label={t(saving ? 'saving' : 'ui.create_order')} disabled={saving} onPress={handleCreateOrder} /></View>
-    </KeyboardAvoidingView>
+    </View>
     <Sheet visible={!!calendar} close={() => setCalendar(null)} title={t('ui.choose_date')} closeLabel={t('ui.close')}>
       {calendar && <View>
         <View style={common.split}>

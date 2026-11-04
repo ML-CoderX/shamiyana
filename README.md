@@ -1,6 +1,6 @@
 # Tent Billing / Shamiyana
 
-Offline-first Android and iOS app for tent and decoration rental businesses, built with Expo SDK 54. Materials, orders, bills and shop details are stored in SQLite on the device. English and Kannada are included.
+Offline-first Android app for tent and decoration rental businesses, built with Expo SDK 54. Materials, orders, bills and shop details are stored in SQLite on the device. English and Kannada are included.
 
 ## Run
 
@@ -11,7 +11,7 @@ npm ci
 npm start
 ```
 
-Open with an Expo Go version compatible with SDK 54, or use an Android emulator with `npm run android`. iOS simulator development requires macOS. This project targets native Android/iOS; web is not configured.
+Open with an Expo Go version compatible with SDK 54, or use an Android emulator with `npm run android`.
 
 ## Workflow
 

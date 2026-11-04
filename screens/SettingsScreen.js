@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, Text, View, StyleSheet } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, Text, View, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Card, Chip, Field, Icon, Tile, common } from '../ui/components';
@@ -30,7 +30,7 @@ export default function SettingsScreen() {
   if (loading) return <ActivityIndicator style={common.page} color={color.brand} />;
   if (failed) return <Button variant="secondary" label={t('retry')} onPress={load} />;
   return <SafeAreaView edges={['bottom', 'left', 'right']} style={common.page}>
-    <KeyboardAvoidingView style={common.page} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={0}>
+    <View style={common.page}>
       <ScrollView contentContainerStyle={common.body} keyboardShouldPersistTaps="handled">
         <Card style={styles.intro}>
           <Tile icon="file" tone="brand" />
@@ -60,7 +60,7 @@ export default function SettingsScreen() {
         </Card>
       </ScrollView>
       <View style={common.footer}><Button icon="check" leading label={t(saving ? 'saving' : 'ui.save_changes')} onPress={save} disabled={saving} /></View>
-    </KeyboardAvoidingView>
+    </View>
   </SafeAreaView>;
 }
 
@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
   required: { color: color.brand },
   field: { marginTop: space.sm },
   value: { ...type.heading },
-  mono: { fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' },
+  mono: { fontFamily: 'monospace' },
   preview: { borderStyle: 'dashed', borderColor: color.outline, gap: space.xs },
   center: { textAlign: 'center' },
   bookmark: { alignSelf: 'center', padding: space.sm, borderRadius: radius.pill, backgroundColor: color.rose, marginBottom: space.xs },

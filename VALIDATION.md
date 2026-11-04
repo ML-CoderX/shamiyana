@@ -11,13 +11,13 @@
 - SHA-256: `FF92CB6BD60423D84C749D18EAECF70B17672595F0CB06058600520990E2F9AC`.
 - Standalone JavaScript bundle is packaged inside the APK; Expo Go and Metro are not needed to use it.
 
-The redesigned APK installed and launched on the Pixel 6 Android emulator. Home, Orders, New Order, the Materials editor sheet and Settings were captured and compared with the Stitch references after implementation. The date picker and Kannada Home were also opened. The initial system dialog was dismissed before comparing screens. Physical device and iOS UI checks remain pending.
+The redesigned APK installed and launched on the Pixel 6 Android emulator. Home, Orders, New Order, the Materials editor sheet and Settings were captured and compared with the Stitch references after implementation. The date picker and Kannada Home were also opened. The initial system dialog was dismissed before comparing screens. Physical device checks remain pending.
 
 ## Passed
 
 - Nine automated regression tests (`npm test`).
 - Application JavaScript and JSX parsing.
-- Android and iOS production Hermes bundle export.
+- Android production Hermes bundle export.
 - Expo dependency compatibility check using the installed SDK's offline dependency map.
 - Package manifest and lockfile consistency.
 
@@ -26,7 +26,7 @@ The database tests execute real SQLite through a small adapter matching the Expo
 ## Not verified
 
 - Full keyboard and large text coverage across all screens.
-- Native SQLite behavior on Android/iOS hardware.
+- Native SQLite behavior on Android hardware.
 - English/Kannada PDF rendering, multipage layout and actual sharing.
 - Production signing and store distribution.
 

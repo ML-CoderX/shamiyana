@@ -90,7 +90,7 @@ export default function BillingScreen({ route }) {
   if (error) return <View style={common.body}><Text>{t('load_failed')}</Text><Button variant="secondary" label={t('retry')} onPress={load} /></View>;
 
   return <SafeAreaView edges={['bottom', 'left', 'right']} style={common.page}>
-    <FlatList automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled"
+    <FlatList keyboardShouldPersistTaps="handled"
       contentContainerStyle={common.body} data={items} keyExtractor={item => String(item.id)}
       ListHeaderComponent={<Card style={styles.group}>
         <View style={common.split}><Text style={[common.heading, styles.grow]}>{order.customer_name}</Text><Chip label={t(order.status)} tone={order.status} maxWidth="45%" dot /></View>
