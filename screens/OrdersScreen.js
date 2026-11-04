@@ -71,7 +71,7 @@ export default function OrdersScreen({ navigation }) {
           <View style={[styles.detail, styles.grow]}><Icon name="pin" dimension={16} /><Text numberOfLines={2} style={[common.meta, styles.grow]}>{item.venue || '—'}</Text></View>
         </View>
         {item.count != null && <><View style={common.divider} /><View style={common.split}>
-          <Text style={common.meta}>{t('ui.items', { count: item.count })}</Text>
+          <Text style={common.meta}>{t(item.count === 1 ? 'ui.items_one' : 'ui.items_other', { number: item.count })}</Text>
           <Text style={common.heading}>₹{item.amount.toFixed(2)}</Text>
         </View></>}
       </Card>}

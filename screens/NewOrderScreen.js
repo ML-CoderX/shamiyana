@@ -107,7 +107,7 @@ export default function NewOrderScreen({ navigation }) {
           <View style={common.divider} />
           <View style={common.split}>
             <Text style={[common.heading, styles.flex]}>{t('order_items')}</Text>
-            <Chip label={t('ui.added', { count: cart.length })} tone="brand" />
+            <Chip label={t(cart.length === 1 ? 'ui.added_one' : 'ui.added_other', { number: cart.length })} tone="brand" />
           </View>
           <Text style={common.meta}>{t('ui.estimated')}</Text>
         </View>}

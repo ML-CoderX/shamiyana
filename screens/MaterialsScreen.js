@@ -25,6 +25,7 @@ export default function MaterialsScreen({ navigation }) {
   const [editingId, setEditingId] = useState(null);
   const [name, setName] = useState('');
   const [unit, setUnit] = useState('piece');
+  const [editingCustomUnit, setEditingCustomUnit] = useState(false);
   const [cost, setCost] = useState('');
   const [category, setCategory] = useState('');
 
@@ -40,6 +41,7 @@ export default function MaterialsScreen({ navigation }) {
     setEditingId(null);
     setName('');
     setUnit('piece');
+    setEditingCustomUnit(false);
     setCost('');
     setCategory('');
   };
@@ -53,6 +55,7 @@ export default function MaterialsScreen({ navigation }) {
     setEditingId(item.id);
     setName(item.name);
     setUnit(item.unit);
+    setEditingCustomUnit(false);
     setCost(String(item.unit_cost));
     setCategory(item.category || '');
     setModalVisible(true);
@@ -99,7 +102,7 @@ export default function MaterialsScreen({ navigation }) {
   const close = () => { if (!saving) setModalVisible(false); };
 
   return <SafeAreaView edges={['bottom', 'left', 'right']} style={common.page}>
-    <AppBar title={t('materials')} back={navigation.goBack} backLabel={t('ui.back')} badge={t('ui.items', { count: materials.length })}>
+    <AppBar title={t('materials')} back={navigation.goBack} backLabel={t('ui.back')} badge={t(materials.length === 1 ? 'ui.items_one' : 'ui.items_other', { number: materials.length })}>
       <Field style={styles.search} icon="search" value={query} onChangeText={setQuery} placeholder={t('ui.search_materials')} accessibilityLabel={t('ui.search_materials')} />
     </AppBar>
     <View style={styles.filters}><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
@@ -127,10 +130,14 @@ export default function MaterialsScreen({ navigation }) {
       <Field label={t('material_name')} required value={name} onChangeText={setName} />
       <View>
         <Text style={styles.label}>{t('unit')}</Text>
-        <View style={styles.picker}><Picker accessibilityLabel={t('unit')} selectedValue={unit} onValueChange={setUnit}>
-          {units.map(value => <Picker.Item key={value} value={value} label={t(`ui.unit_${value}`, { defaultValue: value })} />)}
+        <View style={styles.picker}><Picker accessibilityLabel={t('unit')} selectedValue={editingCustomUnit ? units.length : units.indexOf(unit)} onValueChange={value => {
+          setEditingCustomUnit(value === units.length);
+          if (value < units.length) setUnit(units[value]);
+        }}>
+          {units.map((value, index) => <Picker.Item key={value} value={index} label={t(`ui.unit_${value}`, { defaultValue: value })} />)}
+          <Picker.Item value={units.length} label={t('ui.custom_unit')} />
         </Picker></View>
-        <Field style={styles.customUnit} label={t('ui.custom_unit')} value={unit} onChangeText={setUnit} />
+        {editingCustomUnit && <Field style={styles.customUnit} label={t('ui.custom_unit')} value={unit} onChangeText={setUnit} />}
       </View>
       <Field label={t('unit_cost')} prefix="₹" required value={cost} onChangeText={setCost} keyboardType="decimal-pad" />
       <Field label={t('category')} value={category} onChangeText={setCategory} placeholder={t('optional')} />

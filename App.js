@@ -46,7 +46,7 @@ export default function App() {
           backLabel={t('ui.back')} badge={options.title === t('settings') ? t('ui.bill_profile') : undefined} />,
       }}>
         <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: t('settings') }} />
-        <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false, statusBarStyle: 'dark' }} />
         <Stack.Screen name="Materials" component={MaterialsScreen} options={{ title: t('materials'), headerShown: false }} />
         <Stack.Screen name="Orders" component={OrdersScreen} options={{ title: t('orders'), headerShown: false }} />
         <Stack.Screen name="NewOrder" component={NewOrderScreen} options={{ title: t('new_order') }} />

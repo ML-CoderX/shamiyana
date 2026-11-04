@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
@@ -23,6 +23,8 @@ function todayKey() {
 
 export default function HomeScreen({ navigation }) {
   const { t } = useTranslation();
+  const { width, fontScale } = useWindowDimensions();
+  const compact = width <= 365 || fontScale >= 1.2;
   const [shop, setShop] = useState('');
   const [active, setActive] = useState(null);
   useFocusEffect(useCallback(() => {
@@ -48,16 +50,18 @@ export default function HomeScreen({ navigation }) {
             </View>
           </View>
           <Tap accessibilityLabel={t('language')} onPress={() => i18n.changeLanguage(next)} style={styles.language}>
-            <Icon name="globe" dimension={16} /><Text style={common.meta}>{t(next === 'kn' ? 'kannada' : 'english')}</Text>
+            <Icon name="globe" dimension={16} /><Text style={common.meta}>{t(next === 'kn' ? 'kannada' : 'english', { lng: next })}</Text>
           </Tap>
         </View>
-        <Card style={common.row}>
-          <Tile icon="calendar" tone="brand" />
-          <View style={styles.grow}>
+        <Card style={[common.row, compact && styles.dispatchCompact]}>
+          <View style={[common.row, !compact && styles.grow]}>
+            <Tile icon="calendar" tone="brand" />
+            <View style={styles.grow}>
             <Text style={common.eyebrow}>{t('ui.dispatch')}</Text>
-            <Text style={common.heading}>{active === null ? t('ui.dispatch_unavailable') : t('ui.active', { count: active })}</Text>
+            <Text style={common.heading}>{active === null ? t('ui.dispatch_unavailable') : t(active === 1 ? 'ui.active_one' : 'ui.active_other', { number: active })}</Text>
+            </View>
           </View>
-          <Chip label={t('ui.offline_ready')} tone="delivered" />
+          <Chip label={t('ui.offline_ready')} tone="delivered" maxWidth={compact ? '100%' : '42%'} />
         </Card>
       </View>
 
@@ -82,6 +86,7 @@ export default function HomeScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   content: { flexGrow: 1, padding: space.xxl, gap: space.section },
+  dispatchCompact: { flexDirection: 'column', alignItems: 'stretch' },
   top: { gap: space.lg },
   title: { ...type.title, color: color.ink },
   brand: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: space.sm },
