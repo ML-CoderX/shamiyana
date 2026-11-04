@@ -1,8 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import {
-  View, Text, TextInput, FlatList, TouchableOpacity,
-  StyleSheet, Modal, Alert, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform,
-} from 'react-native';
+import { View, Text, FlatList, StyleSheet, Alert, ActivityIndicator, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { useFocusEffect } from '@react-navigation/native';
@@ -10,14 +7,19 @@ import {
   getMaterials, addMaterial, updateMaterial, deleteMaterial,
 } from '../db/database';
 
+import { Picker } from '@react-native-picker/picker';
+import { AppBar, Button, Card, Chip, Field, IconButton, Sheet, Tap, Tile, common } from '../ui/components';
+import { color, radius, space, type } from '../ui/tokens';
 import { numberInput } from '../utils/billing';
 
-export default function MaterialsScreen() {
+export default function MaterialsScreen({ navigation }) {
   const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const lock = useRef(false);
+  const [query, setQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState(null);
   const [materials, setMaterials] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -87,96 +89,74 @@ export default function MaterialsScreen() {
     ]);
   };
 
-  return (
-    <SafeAreaView edges={['bottom', 'left', 'right']} style={styles.container}>
-      {failed && <TouchableOpacity onPress={load} style={{ padding: 16 }}><Text>{t('load_failed')} · {t('retry')}</Text></TouchableOpacity>}
-      <FlatList
-        data={materials}
-        keyExtractor={(item) => String(item.id)}
-        contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
-        refreshing={loading} onRefresh={load}
-        ListEmptyComponent={loading ? <ActivityIndicator /> : !failed ? <Text style={styles.empty}>{t('no_materials')}</Text> : null}
-        renderItem={({ item }) => (
-          <View style={styles.row}>
-            <TouchableOpacity style={{ flex: 1 }} onPress={() => openEdit(item)}>
-              <Text style={styles.rowName}>{item.name}</Text>
-              <Text style={styles.rowSub}>
-                ₹{item.unit_cost.toFixed(2)} / {item.unit}
-                {item.category ? `  •  ${item.category}` : ''}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity accessibilityRole="button" accessibilityLabel={`${t('delete')} ${item.name}`} onPress={() => handleDelete(item.id)} style={styles.deleteBtn}>
-              <Text style={styles.deleteBtnText}>✕</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      />
+  const categories = [...new Set(materials.map(item => item.category).filter(Boolean))];
+  const needle = query.trim().toLowerCase();
+  const selectedCategory = categories.includes(categoryFilter) ? categoryFilter : null;
+  const shown = materials.filter(item =>
+    (!selectedCategory || item.category === selectedCategory) &&
+    [item.name, item.category].some(value => value?.toLowerCase().includes(needle)));
+  const units = [...new Set(['piece', 'set', 'day', ...materials.map(item => item.unit), unit].filter(Boolean))];
+  const close = () => { if (!saving) setModalVisible(false); };
 
-      <TouchableOpacity accessibilityRole="button" accessibilityLabel={t('add_material')} style={styles.fab} onPress={openAdd}>
-        <Text style={styles.fabText}>+</Text>
-      </TouchableOpacity>
-
-      <Modal onRequestClose={() => { if (!saving) setModalVisible(false); }} visible={modalVisible} animationType="slide" transparent>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
-          <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: '90%', flexGrow: 0 }} contentContainerStyle={styles.modalContent}>
-            <Text style={styles.modalTitle}>{t(editingId ? 'edit_material' : 'add_material')}</Text>
-
-            <Text style={styles.label}>{t('material_name')}</Text>
-            <TextInput accessibilityLabel={t('material_name')} style={styles.input} value={name} onChangeText={setName} />
-
-            <Text style={styles.label}>{t('unit')}</Text>
-            <TextInput accessibilityLabel={t('unit')} style={styles.input} value={unit} onChangeText={setUnit} placeholder="piece / set / day" />
-
-            <Text style={styles.label}>{t('unit_cost')}</Text>
-            <TextInput accessibilityLabel={t('unit_cost')} style={styles.input} value={cost} onChangeText={setCost} keyboardType="decimal-pad" />
-
-            <Text style={styles.label}>{t('category')}</Text>
-            <TextInput accessibilityLabel={t('category')} style={styles.input} value={category} onChangeText={setCategory} placeholder={t('optional')} />
-
-            <View style={styles.modalActions}>
-              <TouchableOpacity disabled={saving} style={styles.cancelBtn} onPress={() => setModalVisible(false)}>
-                <Text>{t('cancel')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity disabled={saving} style={[styles.saveBtn, saving && { opacity: 0.5 }]} onPress={handleSave}>
-                <Text style={styles.saveBtnText}>{t(saving ? 'saving' : 'save')}</Text>
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </Modal>
-    </SafeAreaView>
-  );
+  return <SafeAreaView edges={['bottom', 'left', 'right']} style={common.page}>
+    <AppBar title={t('materials')} back={navigation.goBack} backLabel={t('ui.back')} badge={t('ui.items', { count: materials.length })}>
+      <Field style={styles.search} icon="search" value={query} onChangeText={setQuery} placeholder={t('ui.search_materials')} accessibilityLabel={t('ui.search_materials')} />
+    </AppBar>
+    <View style={styles.filters}><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+      <Chip label={t('ui.all_items')} active={selectedCategory === null} onPress={() => setCategoryFilter(null)} />
+      {categories.map(value => <Chip key={value} label={value} active={selectedCategory === value} onPress={() => setCategoryFilter(value)} />)}
+    </ScrollView></View>
+    {failed && <Button label={t('retry')} variant="secondary" onPress={load} />}
+    <FlatList data={shown} keyExtractor={item => String(item.id)} contentContainerStyle={styles.list}
+      keyboardShouldPersistTaps="handled" refreshing={loading} onRefresh={load}
+      ListEmptyComponent={loading ? <ActivityIndicator color={color.brand} /> : !failed && <Text style={styles.empty}>{t(materials.length ? 'ui.no_matching_materials' : 'no_materials')}</Text>}
+      renderItem={({ item }) => <Card style={common.row}>
+        <Tap style={common.row} accessibilityLabel={`${t('edit')} ${item.name}`} onPress={() => openEdit(item)}>
+          <Tile icon="box" tone="brand" />
+        </Tap>
+        <Tap style={styles.materialText} containerStyle={styles.flex} onPress={() => openEdit(item)}>
+          <Text numberOfLines={2} style={common.heading}>{item.name}</Text>
+          {!!item.category && <Text numberOfLines={1} style={common.eyebrow}>{item.category}</Text>}
+          <Text style={styles.price}>₹{item.unit_cost.toFixed(2)} <Text style={common.meta}>/ {t(`ui.unit_${item.unit}`, { defaultValue: item.unit })}</Text></Text>
+        </Tap>
+        <IconButton label={`${t('delete')} ${item.name}`} icon="close" onPress={() => handleDelete(item.id)} />
+      </Card>}
+    />
+    <View style={common.fab}><IconButton label={t('add_material')} icon="plus" tint={color.white} style={common.fabInner} onPress={openAdd} /></View>
+    <Sheet visible={modalVisible} close={close} title={t(editingId ? 'edit_material' : 'add_material')} closeLabel={t('ui.close')}>
+      <Field label={t('material_name')} required value={name} onChangeText={setName} />
+      <View>
+        <Text style={styles.label}>{t('unit')}</Text>
+        <View style={styles.picker}><Picker accessibilityLabel={t('unit')} selectedValue={unit} onValueChange={setUnit}>
+          {units.map(value => <Picker.Item key={value} value={value} label={t(`ui.unit_${value}`, { defaultValue: value })} />)}
+        </Picker></View>
+        <Field style={styles.customUnit} label={t('ui.custom_unit')} value={unit} onChangeText={setUnit} />
+      </View>
+      <Field label={t('unit_cost')} prefix="₹" required value={cost} onChangeText={setCost} keyboardType="decimal-pad" />
+      <Field label={t('category')} value={category} onChangeText={setCategory} placeholder={t('optional')} />
+      {categories.length > 0 && <View style={styles.suggestions}>{categories
+        .filter(value => value !== category && value.toLowerCase().includes(category.trim().toLowerCase()))
+        .slice(0, 6).map(value => <Chip key={value} label={value} onPress={() => setCategory(value)} />)}</View>}
+      <View style={styles.actions}>
+        <Button variant="secondary" label={t('cancel')} disabled={saving} onPress={close} />
+        <Button label={t(saving ? 'saving' : 'save')} disabled={saving} onPress={handleSave} />
+      </View>
+    </Sheet>
+  </SafeAreaView>;
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  empty: { textAlign: 'center', color: '#666', marginTop: 40 },
-  row: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#fff', padding: 14, borderRadius: 10, marginBottom: 10,
-    borderWidth: 1, borderColor: '#eee',
-  },
-  rowName: { fontSize: 16, fontWeight: '600', color: '#1a1a1a' },
-  rowSub: { fontSize: 13, color: '#666', marginTop: 2 },
-  deleteBtn: { padding: 12, minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
-  deleteBtnText: { color: '#c0392b', fontSize: 16 },
-  fab: {
-    position: 'absolute', right: 20, bottom: 20,
-    width: 56, height: 56, borderRadius: 28,
-    backgroundColor: '#c0392b', justifyContent: 'center', alignItems: 'center',
-    elevation: 4,
-  },
-  fabText: { color: '#fff', fontSize: 28, lineHeight: 30 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: '#fff', padding: 20, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
-  modalTitle: { fontSize: 18, fontWeight: '700', marginBottom: 12 },
-  label: { fontSize: 13, color: '#555', marginTop: 8, marginBottom: 4 },
-  input: {
-    borderWidth: 1, borderColor: '#ddd', borderRadius: 8,
-    paddingHorizontal: 12, paddingVertical: 10, fontSize: 16,
-  },
-  modalActions: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 20, gap: 12 },
-  cancelBtn: { paddingVertical: 10, paddingHorizontal: 16 },
-  saveBtn: { backgroundColor: '#c0392b', paddingVertical: 10, paddingHorizontal: 20, borderRadius: 8 },
-  saveBtnText: { color: '#fff', fontWeight: '600' },
+  flex: { flex: 1, minWidth: 0 },
+  search: { marginHorizontal: space.lg, marginBottom: space.md },
+  filters: { backgroundColor: color.white, borderBottomWidth: 1, borderColor: color.line },
+  chips: { padding: space.md, gap: space.sm },
+  list: { ...common.body, paddingBottom: space.section * 3 },
+  materialText: { gap: space.xs },
+  price: { ...type.label, color: color.brand },
+  empty: { ...common.meta, textAlign: 'center', marginTop: space.section },
+  label: { ...type.label, color: color.label, marginBottom: space.sm },
+  picker: { borderWidth: 1, borderColor: color.outline, borderRadius: radius.input },
+  customUnit: { marginTop: space.md },
+  suggestions: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  actions: { flexDirection: 'row', justifyContent: 'flex-end', flexWrap: 'wrap', gap: space.sm },
 });
