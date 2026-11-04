@@ -7,8 +7,7 @@ import {
   getMaterials, addMaterial, updateMaterial, deleteMaterial,
 } from '../db/database';
 
-import { Picker } from '@react-native-picker/picker';
-import { AppBar, Button, Card, Chip, Field, IconButton, Sheet, Tap, Tile, common } from '../ui/components';
+import { AppBar, Button, Card, Chip, Field, Select, IconButton, Sheet, Tap, Tile, common } from '../ui/components';
 import { color, radius, space, type } from '../ui/tokens';
 import { numberInput } from '../utils/billing';
 
@@ -130,13 +129,15 @@ export default function MaterialsScreen({ navigation }) {
       <Field label={t('material_name')} required value={name} onChangeText={setName} />
       <View>
         <Text style={styles.label}>{t('unit')}</Text>
-        <View style={styles.picker}><Picker accessibilityLabel={t('unit')} selectedValue={editingCustomUnit ? units.length : units.indexOf(unit)} onValueChange={value => {
-          setEditingCustomUnit(value === units.length);
-          if (value < units.length) setUnit(units[value]);
-        }}>
-          {units.map((value, index) => <Picker.Item key={value} value={index} label={t(`ui.unit_${value}`, { defaultValue: value })} />)}
-          <Picker.Item value={units.length} label={t('ui.custom_unit')} />
-        </Picker></View>
+        <View style={styles.picker}><Select accessibilityLabel={t('unit')} selectedValue={editingCustomUnit ? units.length : units.indexOf(unit)}
+          onValueChange={value => {
+            setEditingCustomUnit(value === units.length);
+            if (value >= 0 && value < units.length) setUnit(units[value]);
+          }}
+          options={[
+            ...units.map((value, index) => ({ value: index, label: t(`ui.unit_${value}`, { defaultValue: value }) })),
+            { value: units.length, label: t('ui.custom_unit') },
+          ]} /></View>
         {editingCustomUnit && <Field style={styles.customUnit} label={t('ui.custom_unit')} value={unit} onChangeText={setUnit} />}
       </View>
       <Field label={t('unit_cost')} prefix="₹" required value={cost} onChangeText={setCost} keyboardType="decimal-pad" />

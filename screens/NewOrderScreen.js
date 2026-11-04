@@ -2,12 +2,11 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, FlatList, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
-import { Picker } from '@react-native-picker/picker';
 import {
   getMaterials, createOrderWithItems,
 } from '../db/database';
 
-import { Button, Card, Chip, Field, IconButton, Sheet, Tap, common } from '../ui/components';
+import { Button, Card, Chip, Field, Select, IconButton, Sheet, Tap, common } from '../ui/components';
 import { color, radius, size, space, type } from '../ui/tokens';
 import { numberInput, money, validEventDate } from '../utils/billing';
 
@@ -26,6 +25,7 @@ export default function NewOrderScreen({ navigation }) {
 
   const [pickerVisible, setPickerVisible] = useState(false);
   const [selectedMaterial, setSelectedMaterial] = useState(null);
+  const material = materials.find(item => item.id === selectedMaterial) ?? materials[0];
   const [qty, setQty] = useState('1');
   const [saving, setSaving] = useState(false);
   const lock = useRef(false);
@@ -35,7 +35,6 @@ export default function NewOrderScreen({ navigation }) {
     try {
       const rows = await getMaterials();
       setMaterials(rows);
-      if (rows.length) setSelectedMaterial(rows[0].id);
     } catch { setFailed(true); }
     finally { setLoading(false); }
   }, []);
@@ -52,7 +51,7 @@ export default function NewOrderScreen({ navigation }) {
   };
 
   const confirmAddItem = () => {
-    const mat = materials.find((m) => m.id === selectedMaterial);
+    const mat = material;
     const quantity = numberInput(qty);
     if (!mat || !Number.isFinite(quantity) || quantity <= 0 || quantity * mat.unit_cost > 1e10) {
       Alert.alert(t('error'), t('invalid_quantity'));
@@ -151,9 +150,8 @@ export default function NewOrderScreen({ navigation }) {
     </Sheet>
     <Sheet visible={pickerVisible} close={() => setPickerVisible(false)} title={t('select_material')} closeLabel={t('ui.close')}>
       <View style={styles.picker}>
-        <Picker accessibilityLabel={t('select_material')} selectedValue={selectedMaterial} onValueChange={setSelectedMaterial}>
-          {materials.map(m => <Picker.Item key={m.id} label={`${m.name} (₹${m.unit_cost}/${m.unit})`} value={m.id} />)}
-        </Picker>
+        <Select accessibilityLabel={t('select_material')} selectedValue={material?.id} onValueChange={setSelectedMaterial}
+          options={materials.map(m => ({ label: `${m.name} (₹${m.unit_cost}/${m.unit})`, value: m.id }))} />
       </View>
       <Field label={t('quantity')} value={qty} onChangeText={setQty} keyboardType="decimal-pad" />
       <View style={styles.actions}>

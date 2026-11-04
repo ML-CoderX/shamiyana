@@ -10,10 +10,9 @@ import {
 } from '../db/database';
 import { buildBillHtml, shareBillPdf } from '../utils/pdf';
 
-import { Button, Card, Chip, Field, common } from '../ui/components';
+import { Button, Card, Chip, Field, Select, common } from '../ui/components';
 import { color, radius, space, type } from '../ui/tokens';
 import { billTotals } from '../utils/billing';
-import { Picker } from '@react-native-picker/picker';
 
 export default function BillingScreen({ route }) {
   const { orderId } = route.params;
@@ -98,9 +97,8 @@ export default function BillingScreen({ route }) {
         {!!order.venue && <Text style={common.meta}>{order.venue}</Text>}
         <Text style={styles.label}>{t('status')}</Text>
         <View style={styles.picker}>
-          <Picker enabled={!saving} accessibilityLabel={t('status')} selectedValue={order.status} onValueChange={changeStatus}>
-            {['pending', 'delivered', 'returned'].map(status => <Picker.Item key={status} label={t(status)} value={status} />)}
-          </Picker>
+          <Select enabled={!saving} accessibilityLabel={t('status')} selectedValue={order.status} onValueChange={changeStatus}
+            options={['pending', 'delivered', 'returned'].map(status => ({ label: t(status), value: status }))} />
         </View>
       </Card>}
       renderItem={({ item }) => <Card style={common.split}>

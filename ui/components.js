@@ -1,3 +1,4 @@
+import { Picker } from '@react-native-picker/picker';
 import { useRef, useState } from 'react';
 import { Animated, Image, KeyboardAvoidingView, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -74,6 +75,18 @@ export function Button({ label, icon, leading, variant = 'primary', style, ...pr
 
 export function IconButton({ label, icon, tint, style, ...props }) {
   return <Tap accessibilityLabel={label} style={[styles.iconButton, style]} {...props}><Icon name={icon} tint={tint} /></Tap>;
+}
+
+export function Select({ options, onValueChange, ...props }) {
+  return <Picker {...props} dropdownIconColor={color.label} numberOfLines={2}
+    onValueChange={(value, index) => {
+      if (index >= 0) onValueChange?.(value);
+    }}>
+    {options.map(({ label, value }) => (
+      <Picker.Item key={value} label={label} value={value} color={color.ink}
+        style={{ color: color.ink, backgroundColor: color.white }} />
+    ))}
+  </Picker>;
 }
 
 export function Field({ label, icon, required, prefix, style, inputStyle, action, ...props }) {
