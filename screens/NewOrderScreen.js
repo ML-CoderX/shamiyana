@@ -1,8 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import {
-  View, Text, TextInput, TouchableOpacity, FlatList,
-  StyleSheet, Alert, Modal, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView,
-} from 'react-native';
+import { View, Text, FlatList, StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Picker } from '@react-native-picker/picker';
@@ -10,10 +7,13 @@ import {
   getMaterials, createOrderWithItems,
 } from '../db/database';
 
+import { Button, Card, Chip, Field, IconButton, Sheet, Tap, common } from '../ui/components';
+import { color, radius, size, space, type } from '../ui/tokens';
 import { numberInput, money, validEventDate } from '../utils/billing';
 
 export default function NewOrderScreen({ navigation }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const [calendar, setCalendar] = useState(null);
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [eventDate, setEventDate] = useState('');
@@ -90,124 +90,93 @@ export default function NewOrderScreen({ navigation }) {
     }
   };
 
-  return (
-    <SafeAreaView edges={['bottom', 'left', 'right']} style={styles.container}>
-      {loading && <ActivityIndicator />}
-      {failed && <TouchableOpacity style={{ padding: 16 }} onPress={load}><Text>{t('load_failed')} · {t('retry')}</Text></TouchableOpacity>}
-      <FlatList automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ padding: 16 }}
-        ListHeaderComponent={
-          <View>
-            <Text style={styles.label}>{t('customer_name')}</Text>
-            <TextInput accessibilityLabel={t('customer_name')} style={styles.input} value={customerName} onChangeText={setCustomerName} />
-
-            <Text style={styles.label}>{t('customer_phone')}</Text>
-            <TextInput accessibilityLabel={t('customer_phone')} style={styles.input} value={customerPhone} onChangeText={setCustomerPhone} keyboardType="phone-pad" />
-
-            <Text style={styles.label}>{t('event_date')}</Text>
-            <TextInput accessibilityLabel={t('event_date')} style={styles.input} value={eventDate} onChangeText={setEventDate} placeholder="DD-MM-YYYY" />
-
-            <Text style={styles.label}>{t('venue')}</Text>
-            <TextInput accessibilityLabel={t('venue')} style={styles.input} value={venue} onChangeText={setVenue} />
-
-            <View style={styles.divider} />
-            <Text style={styles.sectionTitle}>{t('order_items')}</Text>
+  return <SafeAreaView edges={['bottom', 'left', 'right']} style={styles.page}>
+    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      {loading && <ActivityIndicator color={color.brand} />}
+      {failed && <Button variant="secondary" label={t('retry')} onPress={load} />}
+      <FlatList keyboardShouldPersistTaps="handled" contentContainerStyle={common.body}
+        ListHeaderComponent={<View style={styles.form}>
+          <Field label={t('customer_name')} icon="user" required value={customerName} onChangeText={setCustomerName} />
+          <Field label={t('customer_phone')} icon="phone" value={customerPhone} onChangeText={setCustomerPhone} keyboardType="phone-pad" />
+          <Field label={t('event_date')} icon="calendar" value={eventDate} onChangeText={setEventDate} placeholder="DD-MM-YYYY"
+            action={<IconButton icon="calendar" label={t('ui.choose_date')} onPress={() => {
+              const [day, month, year] = eventDate.trim().split('-').map(Number);
+              setCalendar(day && validEventDate(eventDate) ? new Date(year, month - 1, 1) : new Date());
+            }} />} />
+          <Field label={t('venue')} icon="pin" value={venue} onChangeText={setVenue} />
+          <View style={common.divider} />
+          <View style={common.split}>
+            <Text style={[common.heading, styles.flex]}>{t('order_items')}</Text>
+            <Chip label={t('ui.added', { count: cart.length })} tone="brand" />
           </View>
-        }
-        data={cart}
-        keyExtractor={(_, i) => String(i)}
-        renderItem={({ item, index }) => (
-          <View style={styles.cartRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.cartName}>{item.name}</Text>
-              <Text style={styles.cartSub}>
-                {item.quantity} × ₹{item.unit_cost.toFixed(2)} = ₹{(item.quantity * item.unit_cost).toFixed(2)}
-              </Text>
-            </View>
-            <TouchableOpacity accessibilityRole="button" accessibilityLabel={t('delete')} style={{ minWidth: 48, minHeight: 48, justifyContent: 'center', alignItems: 'center' }} onPress={() => removeCartItem(index)}>
-              <Text style={styles.removeText}>✕</Text>
-            </TouchableOpacity>
+          <Text style={common.meta}>{t('ui.estimated')}</Text>
+        </View>}
+        data={cart} keyExtractor={(_, index) => String(index)}
+        renderItem={({ item, index }) => <Card style={common.row}>
+          <View style={styles.quantity}><Text style={styles.rate}>{item.quantity}×</Text></View>
+          <View style={styles.flex}>
+            <Text numberOfLines={2} style={common.heading}>{item.name}</Text>
+            <Text style={styles.rate}>{t('ui.per_unit', { price: item.unit_cost.toFixed(2) })}</Text>
           </View>
-        )}
-        ListFooterComponent={
-          <View>
-            <TouchableOpacity disabled={loading || failed || saving} style={styles.addItemBtn} onPress={openPicker}>
-              <Text style={styles.addItemBtnText}>+ {t('add_item')}</Text>
-            </TouchableOpacity>
-
-            {cart.length > 0 && (
-              <Text style={styles.totalText}>{t('subtotal')}: ₹{cartTotal.toFixed(2)}</Text>
-            )}
-
-            <TouchableOpacity disabled={saving} style={[styles.submitBtn, saving && { opacity: 0.5 }]} onPress={handleCreateOrder}>
-              <Text style={styles.submitBtnText}>{t(saving ? 'saving' : 'new_order')}</Text>
-            </TouchableOpacity>
+          <View style={styles.itemEnd}>
+            <Text style={styles.amount}>₹{money(item.quantity * item.unit_cost).toFixed(2)}</Text>
+            <IconButton label={t('delete')} icon="trash" onPress={() => removeCartItem(index)} />
           </View>
-        }
+        </Card>}
+        ListFooterComponent={<View style={styles.form}>
+          <Button variant="dashed" icon="plus" leading label={t('add_item')} disabled={loading || failed || saving} onPress={openPicker} />
+          <Card style={styles.totals}>
+            <View style={common.split}><Text style={common.meta}>{t('subtotal')}</Text><Text style={common.meta}>₹{cartTotal.toFixed(2)}</Text></View>
+            <View style={common.divider} />
+            <View style={common.split}><Text style={common.heading}>{t('ui.grand_total')}</Text><Text style={[common.heading, styles.rate]}>₹{cartTotal.toFixed(2)}</Text></View>
+          </Card>
+        </View>}
       />
-
-      <Modal onRequestClose={() => setPickerVisible(false)} visible={pickerVisible} animationType="slide" transparent>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
-          <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: '90%', flexGrow: 0 }} contentContainerStyle={styles.modalContent}>
-            <Text style={styles.modalTitle}>{t('select_material')}</Text>
-            <View style={styles.pickerWrap}>
-              <Picker accessibilityLabel={t('select_material')} selectedValue={selectedMaterial} onValueChange={setSelectedMaterial}>
-                {materials.map((m) => (
-                  <Picker.Item key={m.id} label={`${m.name} (₹${m.unit_cost}/${m.unit})`} value={m.id} />
-                ))}
-              </Picker>
-            </View>
-            <Text style={styles.label}>{t('quantity')}</Text>
-            <TextInput accessibilityLabel={t('quantity')} style={styles.input} value={qty} onChangeText={setQty} keyboardType="decimal-pad" />
-            <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => setPickerVisible(false)}>
-                <Text>{t('cancel')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.saveBtn} onPress={confirmAddItem}>
-                <Text style={styles.saveBtnText}>{t('add_item')}</Text>
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </Modal>
-    </SafeAreaView>
-  );
+      <View style={common.footer}><Button icon="arrow" label={t(saving ? 'saving' : 'ui.create_order')} disabled={saving} onPress={handleCreateOrder} /></View>
+    </KeyboardAvoidingView>
+    <Sheet visible={!!calendar} close={() => setCalendar(null)} title={t('ui.choose_date')} closeLabel={t('ui.close')}>
+      {calendar && <View>
+        <View style={common.split}>
+          <IconButton icon="back" label={t('ui.previous_month')} onPress={() => setCalendar(new Date(calendar.getFullYear(), calendar.getMonth() - 1, 1))} />
+          <Text style={[common.heading, styles.monthTitle]}>{new Intl.DateTimeFormat(i18n.language, { month: 'long', year: 'numeric' }).format(calendar)}</Text>
+          <IconButton icon="arrow" label={t('ui.next_month')} onPress={() => setCalendar(new Date(calendar.getFullYear(), calendar.getMonth() + 1, 1))} />
+        </View>
+        <View style={styles.days}>{Array.from({ length: new Date(calendar.getFullYear(), calendar.getMonth() + 1, 0).getDate() }, (_, index) => {
+          const day = index + 1;
+          const value = [day, calendar.getMonth() + 1, calendar.getFullYear()].map(part => String(part).padStart(2, '0')).join('-');
+          return <Tap key={day} containerStyle={styles.dayCell} style={styles.day} accessibilityLabel={value}
+            onPress={() => { setEventDate(value); setCalendar(null); }}><Text style={styles.amount}>{day}</Text></Tap>;
+        })}</View>
+      </View>}
+    </Sheet>
+    <Sheet visible={pickerVisible} close={() => setPickerVisible(false)} title={t('select_material')} closeLabel={t('ui.close')}>
+      <View style={styles.picker}>
+        <Picker accessibilityLabel={t('select_material')} selectedValue={selectedMaterial} onValueChange={setSelectedMaterial}>
+          {materials.map(m => <Picker.Item key={m.id} label={`${m.name} (₹${m.unit_cost}/${m.unit})`} value={m.id} />)}
+        </Picker>
+      </View>
+      <Field label={t('quantity')} value={qty} onChangeText={setQty} keyboardType="decimal-pad" />
+      <View style={styles.actions}>
+        <Button variant="secondary" label={t('cancel')} onPress={() => setPickerVisible(false)} />
+        <Button label={t('add_item')} onPress={confirmAddItem} />
+      </View>
+    </Sheet>
+  </SafeAreaView>;
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  label: { fontSize: 13, color: '#555', marginTop: 8, marginBottom: 4 },
-  input: {
-    borderWidth: 1, borderColor: '#ddd', borderRadius: 8, backgroundColor: '#fff',
-    paddingHorizontal: 12, paddingVertical: 10, fontSize: 16,
-  },
-  divider: { height: 1, backgroundColor: '#e0e0e0', marginVertical: 16 },
-  sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 10 },
-  cartRow: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#fff', padding: 12, borderRadius: 8, marginBottom: 8,
-    borderWidth: 1, borderColor: '#eee',
-  },
-  cartName: { fontWeight: '600', color: '#1a1a1a' },
-  cartSub: { fontSize: 13, color: '#666', marginTop: 2 },
-  removeText: { color: '#c0392b', fontSize: 16, paddingHorizontal: 6 },
-  addItemBtn: {
-    borderWidth: 1, borderColor: '#c0392b', borderRadius: 8,
-    paddingVertical: 12, alignItems: 'center', marginTop: 6,
-  },
-  addItemBtnText: { color: '#c0392b', fontWeight: '600' },
-  totalText: { textAlign: 'right', fontSize: 16, fontWeight: '700', marginTop: 14 },
-  submitBtn: {
-    backgroundColor: '#c0392b', borderRadius: 8, paddingVertical: 14,
-    alignItems: 'center', marginTop: 20,
-  },
-  submitBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: '#fff', padding: 20, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
-  modalTitle: { fontSize: 18, fontWeight: '700', marginBottom: 12 },
-  pickerWrap: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, marginBottom: 6 },
-  modalActions: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 20, gap: 12 },
-  cancelBtn: { paddingVertical: 10, paddingHorizontal: 16 },
-  saveBtn: { backgroundColor: '#c0392b', paddingVertical: 10, paddingHorizontal: 20, borderRadius: 8 },
-  saveBtnText: { color: '#fff', fontWeight: '600' },
+  page: { ...common.page, backgroundColor: color.white },
+  flex: { flex: 1, minWidth: 0 },
+  form: { gap: space.lg },
+  quantity: { backgroundColor: color.blush, padding: space.sm, borderRadius: radius.input, maxWidth: '24%' },
+  rate: { ...type.label, color: color.brand },
+  amount: { ...type.label, color: color.ink, fontVariant: ['tabular-nums'] },
+  itemEnd: { alignItems: 'flex-end', maxWidth: '38%' },
+  totals: { backgroundColor: color.page },
+  picker: { borderWidth: 1, borderColor: color.outline, borderRadius: radius.input },
+  monthTitle: { flex: 1, textAlign: 'center' },
+  days: { flexDirection: 'row', flexWrap: 'wrap' },
+  dayCell: { width: '16.66%' },
+  day: { minHeight: size.touch, alignItems: 'center', justifyContent: 'center' },
+  actions: { flexDirection: 'row', justifyContent: 'flex-end', flexWrap: 'wrap', gap: space.sm },
 });
