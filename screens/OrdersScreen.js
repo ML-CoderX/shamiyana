@@ -1,76 +1,92 @@
 import { useState, useCallback } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { useFocusEffect } from '@react-navigation/native';
-import { Picker } from '@react-native-picker/picker';
-import { getOrders } from '../db/database';
+import { AppBar, Button, Card, Chip, Field, Icon, IconButton, common } from '../ui/components';
+import { color, space } from '../ui/tokens';
+import { getOrderItems, getBill, getOrders } from '../db/database';
 
 export default function OrdersScreen({ navigation }) {
   const { t } = useTranslation();
   const [filter, setFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
+  const [query, setQuery] = useState('');
+  const [search, setSearch] = useState(false);
+  const [newest, setNewest] = useState(true);
   const [orders, setOrders] = useState([]);
 
   const load = useCallback(async () => {
     setLoading(true); setFailed(false);
-    try { setOrders(await getOrders()); } catch { setFailed(true); }
+    try {
+      const rows = await getOrders();
+      setOrders(await Promise.all(rows.map(async order => {
+        try {
+          const [items, bill] = await Promise.all([getOrderItems(order.id), getBill(order.id)]);
+          return { ...order, count: items.length, amount: bill?.final_amount ?? items.reduce((sum, item) => sum + item.line_total, 0) };
+        } catch { return order; }
+      })));
+    } catch { setFailed(true); }
     finally { setLoading(false); }
   }, []);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  return (
-    <SafeAreaView edges={['bottom', 'left', 'right']} style={styles.container}>
-      <View style={{ paddingHorizontal: 16 }}>
-        <Text style={{ marginTop: 12 }}>{t('filter_status')}</Text>
-        <Picker accessibilityLabel={t('filter_status')} selectedValue={filter} onValueChange={setFilter}>
-          {['all', 'pending', 'delivered', 'returned'].map(status => <Picker.Item key={status} value={status} label={t(status)} />)}
-        </Picker>
+  const needle = query.trim().toLowerCase();
+  const matching = orders.filter(order => [order.customer_name, order.venue, String(order.id), '#' + order.id].some(value => value?.toLowerCase().includes(needle)));
+  const filtered = matching.filter(order => filter === 'all' || order.status === filter);
+  const data = newest ? filtered : [...filtered].reverse();
+  return <SafeAreaView edges={['bottom', 'left', 'right']} style={common.page}>
+    <AppBar title={t('orders')} back={navigation.goBack} backLabel={t('ui.back')}
+      action={<IconButton icon={search ? 'close' : 'search'} tint={color.white} label={t(search ? 'ui.close' : 'ui.search_orders')}
+        onPress={() => { if (search) setQuery(''); setSearch(!search); }} />}>
+      {search && <Field style={styles.search} icon="search" value={query} onChangeText={setQuery} autoFocus placeholder={t('ui.search_orders')} accessibilityLabel={t('ui.search_orders')} />}
+    </AppBar>
+    <View style={styles.filters}>
+      <View style={common.split}>
+        <Text style={[common.eyebrow, styles.grow]}>{t('filter_status')}</Text>
+        <Button label={t(newest ? 'ui.newest' : 'ui.oldest')} variant="secondary" onPress={() => setNewest(!newest)} />
       </View>
-      {failed && <TouchableOpacity onPress={load} style={{ padding: 16 }}><Text>{t('load_failed')} · {t('retry')}</Text></TouchableOpacity>}
-      <FlatList
-        data={filter === 'all' ? orders : orders.filter(order => order.status === filter)}
-        keyExtractor={(item) => String(item.id)}
-        contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
-        refreshing={loading} onRefresh={load}
-        ListEmptyComponent={loading ? <ActivityIndicator /> : !failed ? <Text style={styles.empty}>{t(filter === 'all' ? 'no_orders' : 'no_matching_orders')}</Text> : null}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.row}
-            onPress={() => navigation.navigate('Billing', { orderId: item.id })}
-          >
-            <Text style={styles.rowName}>#{item.id} · {item.customer_name}</Text>
-            <Text style={{ color: '#933022', marginTop: 6 }}>{t(item.status)}</Text>
-            <Text style={styles.rowSub}>
-              {item.event_date || '—'}{item.venue ? `  •  ${item.venue}` : ''}
-            </Text>
-          </TouchableOpacity>
-        )}
-      />
-
-      <TouchableOpacity accessibilityRole="button" accessibilityLabel={t('new_order')} style={styles.fab} onPress={() => navigation.navigate('NewOrder')}>
-        <Text style={styles.fabText}>+</Text>
-      </TouchableOpacity>
-    </SafeAreaView>
-  );
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+        {['all', 'pending', 'delivered', 'returned'].map(status => {
+          const count = status === 'all' ? matching.length : matching.filter(order => order.status === status).length;
+          return <Chip key={status} label={`${t(status)} (${count})`} tone={status} active={filter === status} onPress={() => setFilter(status)} />;
+        })}
+      </ScrollView>
+    </View>
+    {failed && <Button label={t('retry')} variant="secondary" onPress={load} />}
+    <FlatList data={data} keyExtractor={item => String(item.id)} contentContainerStyle={styles.list}
+      refreshing={loading} onRefresh={load} keyboardShouldPersistTaps="handled"
+      ListEmptyComponent={loading ? <ActivityIndicator color={color.brand} /> : !failed && <Text style={styles.empty}>{t(orders.length ? 'no_matching_orders' : 'no_orders')}</Text>}
+      renderItem={({ item }) => <Card onPress={() => navigation.navigate('Billing', { orderId: item.id })}>
+        <View style={common.split}>
+          <Text numberOfLines={2} style={[common.heading, styles.grow]}>#{item.id} · {item.customer_name}</Text>
+          <Chip label={t(item.status)} tone={item.status} maxWidth="45%" dot />
+        </View>
+        {item.customer_phone && <Text style={common.meta}>{item.customer_phone}</Text>}
+        <View style={common.divider} />
+        <View style={styles.details}>
+          <View style={[styles.detail, styles.grow]}><Icon name="calendar" dimension={16} /><Text style={common.meta}>{item.event_date || '—'}</Text></View>
+          <View style={[styles.detail, styles.grow]}><Icon name="pin" dimension={16} /><Text numberOfLines={2} style={[common.meta, styles.grow]}>{item.venue || '—'}</Text></View>
+        </View>
+        {item.count != null && <><View style={common.divider} /><View style={common.split}>
+          <Text style={common.meta}>{t('ui.items', { count: item.count })}</Text>
+          <Text style={common.heading}>₹{item.amount.toFixed(2)}</Text>
+        </View></>}
+      </Card>}
+    />
+    <View style={common.fab}><IconButton label={t('new_order')} icon="plus" tint={color.white} style={common.fabInner} onPress={() => navigation.navigate('NewOrder')} /></View>
+  </SafeAreaView>;
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  empty: { textAlign: 'center', color: '#666', marginTop: 40 },
-  row: {
-    backgroundColor: '#fff', padding: 14, borderRadius: 10, marginBottom: 10,
-    borderWidth: 1, borderColor: '#eee',
-  },
-  rowName: { fontSize: 16, fontWeight: '600', color: '#1a1a1a' },
-  rowSub: { fontSize: 13, color: '#666', marginTop: 2 },
-  fab: {
-    position: 'absolute', right: 20, bottom: 20,
-    width: 56, height: 56, borderRadius: 28,
-    backgroundColor: '#c0392b', justifyContent: 'center', alignItems: 'center',
-    elevation: 4,
-  },
-  fabText: { color: '#fff', fontSize: 28, lineHeight: 30 },
+  grow: { flex: 1, minWidth: 0 },
+  search: { marginHorizontal: space.lg, marginBottom: space.md },
+  filters: { backgroundColor: color.white, borderBottomWidth: 1, borderColor: color.line, paddingHorizontal: space.lg, paddingBottom: space.md },
+  chips: { gap: space.sm },
+  list: { ...common.body, paddingBottom: space.section * 3 },
+  details: { flexDirection: 'row', gap: space.md },
+  detail: { ...common.row, gap: space.xs },
+  empty: { ...common.meta, textAlign: 'center', marginTop: space.section },
 });
